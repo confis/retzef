@@ -409,7 +409,9 @@ async function normalizePptx(buf){
     if(!/^ppt\/(slides|slideLayouts|slideMasters)\/(_rels\/)?[^/]+\.xml(\.rels)?$/.test(f))continue;
     let x=await zip.file(f).async('string'),y=x;
     if(f.endsWith('.rels')){for(const [a,b] of ren)y=y.split('Target="../'+a+'"').join('Target="../'+b+'"')}
-    else y=y.replace(/<a:blip\b([^>]*?)(?<!\/)>([\s\S]*?)<\/a:blip>/g,(m,attrs,inner)=>{if(/r:embed=/.test(attrs))return m;const sv=inner.match(/svgBlip[^>]*r:embed="([^"]+)"/);return sv?'<a:blip r:embed="'+sv[1]+'"'+attrs+'>'+inner+'</a:blip>':m});
+    else{y=y.replace(/<a:blip\b([^>]*?)(?<!\/)>([\s\S]*?)<\/a:blip>/g,(m,attrs,inner)=>{if(/r:embed=/.test(attrs))return m;const sv=inner.match(/svgBlip[^>]*r:embed="([^"]+)"/);return sv?'<a:blip r:embed="'+sv[1]+'"'+attrs+'>'+inner+'</a:blip>':m});
+      // pptx-preview has no mapping for algn="just" and renders it centered; make it start-aligned (right for RTL paragraphs, which also keeps the bullet column intact)
+      y=y.replace(/<a:pPr\b[^>]*?>/g,p=>p.indexOf('algn="just"')<0?p:p.replace('algn="just"','algn="'+(/rtl="1"/.test(p)?'r':'l')+'"'));}
     if(y!==x)zip.file(f,y);
   }
   let ct=await zip.file('[Content_Types].xml').async('string');
@@ -492,6 +494,16 @@ function getPptx(it){
   pptxDocs.set(it.id,p);p.catch(()=>pptxDocs.delete(it.id));
   return p;
 }
+// pptx-preview renders every paragraph left-to-right and drops the bullet on the wrong side for Hebrew.
+// Give Hebrew paragraphs RTL direction so the bullet sits on the right, and move the bullet's gap to the text side.
+function fixRtl(root){
+  root.querySelectorAll('p').forEach(p=>{
+    if(!/[֐-׿]/.test(p.textContent||''))return;
+    p.style.direction='rtl';
+    const b=p.firstElementChild;
+    if(b&&b.style&&b.style.marginRight&&!b.style.marginLeft){b.style.marginLeft=b.style.marginRight;b.style.marginRight='0px';}
+  });
+}
 // The renderer ignores rotation, flipping and frame shape (circle, rounded) on pictures – apply them ourselves
 function fixPictures(root,slide){
   const wrap=root.querySelector('.slide-wrapper');if(!wrap||!slide)return;
@@ -508,7 +520,7 @@ function fixPictures(root,slide){
 }
 // returns a fresh copy of the rendered slide (DOM), rendered once per slide
 function pptxSlideNode(doc,i,targetDoc){
-  if(!doc.cache.has(i)){doc.pv.renderSingleSlide(i);const src=doc.pv.wrapper.querySelector('.pptx-preview-slide-wrapper');try{fixPictures(src,doc.pptx.slides[i])}catch(e){}doc.cache.set(i,src)}
+  if(!doc.cache.has(i)){doc.pv.renderSingleSlide(i);const src=doc.pv.wrapper.querySelector('.pptx-preview-slide-wrapper');try{fixPictures(src,doc.pptx.slides[i])}catch(e){}try{fixRtl(src)}catch(e){}doc.cache.set(i,src)}
   const src=doc.cache.get(i);const c=src.cloneNode(true);
   // cloneNode drops canvas pixels (charts) – copy them over
   const a=src.querySelectorAll('canvas'),b=c.querySelectorAll('canvas');a.forEach((cv,k)=>{try{b[k].getContext('2d').drawImage(cv,0,0)}catch(e){}});
