@@ -8,6 +8,22 @@ The interface is fully bilingual: **English by default, Hebrew (RTL) one click a
 
 ---
 
+## Screenshots
+
+**The control room** — build your run of show: drag files in, reorder, preview, and hit present.
+
+![Retzef control room (English)](docs/screenshots/app-en.png)
+
+**Presenter view** — current slide, what's next, speaker notes and timers on your screen; the audience sees only the show.
+
+![Retzef presenter view](docs/screenshots/presenter.png)
+
+**One click to Hebrew (RTL)** — the whole interface flips, and your choice is remembered.
+
+![Retzef control room (Hebrew, RTL)](docs/screenshots/app-he.png)
+
+---
+
 ## Why Retzef
 
 - **Everything in one run of show.** Drag in `.pptx`, `.pdf`, `.mp4`, images, a URL, a YouTube link — reorder by dragging — and present them as one deck.

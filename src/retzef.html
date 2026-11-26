@@ -410,8 +410,8 @@ async function normalizePptx(buf){
     let x=await zip.file(f).async('string'),y=x;
     if(f.endsWith('.rels')){for(const [a,b] of ren)y=y.split('Target="../'+a+'"').join('Target="../'+b+'"')}
     else{y=y.replace(/<a:blip\b([^>]*?)(?<!\/)>([\s\S]*?)<\/a:blip>/g,(m,attrs,inner)=>{if(/r:embed=/.test(attrs))return m;const sv=inner.match(/svgBlip[^>]*r:embed="([^"]+)"/);return sv?'<a:blip r:embed="'+sv[1]+'"'+attrs+'>'+inner+'</a:blip>':m});
-      // pptx-preview has no mapping for algn="just" and renders it centered; make it start-aligned (right for RTL paragraphs, which also keeps the bullet column intact)
-      y=y.replace(/<a:pPr\b[^>]*?>/g,p=>p.indexOf('algn="just"')<0?p:p.replace('algn="just"','algn="'+(/rtl="1"/.test(p)?'r':'l')+'"'));}
+      // pptx-preview has no mapping for algn="just" and renders it centered; map it to "dist", which the renderer turns into text-align:justify (fixRtl then relaxes the last line back to natural, matching PowerPoint)
+      y=y.replace(/<a:pPr\b[^>]*?>/g,p=>p.replace('algn="just"','algn="dist"'));}
     if(y!==x)zip.file(f,y);
   }
   let ct=await zip.file('[Content_Types].xml').async('string');
@@ -500,6 +500,8 @@ function fixRtl(root){
   root.querySelectorAll('p').forEach(p=>{
     if(!/[֐-׿]/.test(p.textContent||''))return;
     p.style.direction='rtl';
+    // "dist" justifies every line including the last; PowerPoint leaves the last line natural
+    if((p.style.textAlign||'')==='justify')p.style.textAlignLast='right';
     const b=p.firstElementChild;
     if(b&&b.style&&b.style.marginRight&&!b.style.marginLeft){b.style.marginLeft=b.style.marginRight;b.style.marginRight='0px';}
   });
