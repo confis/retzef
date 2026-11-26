@@ -1,0 +1,52 @@
+{
+  "name": "retzef",
+  "productName": "Retzef",
+  "version": "1.1.0",
+  "description": "רצף – נגן מצגות שמחבר PowerPoint, PDF, וידאו, תמונות ואתרים לרשימת הצגה אחת",
+  "main": "main.js",
+  "author": "Retzef",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "prepare-app": "node build/prepare.js",
+    "start": "npm run prepare-app && electron .",
+    "dist": "npm run prepare-app && electron-builder --win nsis portable --x64",
+    "dist:zip": "npm run prepare-app && electron-builder --win zip --x64"
+  },
+  "build": {
+    "appId": "com.retzef.presenter",
+    "productName": "Retzef",
+    "files": [
+      "main.js",
+      "preload.js",
+      "ppt-host.ps1",
+      "fake-ppt.js",
+      "app/**/*"
+    ],
+    "asarUnpack": [
+      "ppt-host.ps1"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false,
+      "artifactName": "Retzef-${version}-win-x64.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Retzef-Setup-${version}.exe"
+    },
+    "portable": {
+      "artifactName": "Retzef-Portable-${version}.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "dependencies": {}
+}
